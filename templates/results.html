@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Job Analysis - Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --primary-grad: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        }
+        body { 
+            background-color: #f0f4f8; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #2d3436;
+        }
+        .navbar-custom {
+            background: white;
+            border-bottom: 1px solid #e0e6ed;
+            padding: 1rem 0;
+        }
+        .header-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .job-card {
+            border: none;
+            border-radius: 20px;
+            background: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #f1f5f9;
+        }
+        .job-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            border-color: #3b82f6;
+        }
+        .score-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background: var(--primary-grad);
+            color: white;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+        }
+        .company-name {
+            color: #64748b;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .skill-tag {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            margin: 2px;
+            text-transform: uppercase;
+        }
+        .btn-apply {
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 10px;
+            transition: 0.3s;
+        }
+        .badge-info-custom {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .empty-state {
+            padding: 5rem 2rem;
+            background: white;
+            border-radius: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar-custom mb-5">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand fw-bold text-primary" href="/">
+            <i class="bi bi-cpu-fill me-2"></i>AI JobMatcher
+        </a>
+        <div>
+            <a href="/download_pdf" class="btn btn-danger btn-sm fw-bold px-3 py-2 rounded-3 me-2">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF
+            </a>
+            <a href="/" class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2 rounded-3">
+                <i class="bi bi-arrow-left"></i> Ulangi
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="header-section">
+        <div class="row align-items-center">
+            <div class="col-md-8 text-center text-md-start">
+                <h2 class="fw-bold mb-1">Hasil Analisa untuk Anda</h2>
+                <p class="text-muted mb-0">
+                    Menampilkan hasil terbaik untuk <span class="badge-info-custom">{{ query }}</span> 
+                    di <span class="badge-info-custom">{{ loc }}</span>
+                </p>
+            </div>
+            <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
+                <div class="text-muted small">Total Lowongan Ditemukan:</div>
+                <h3 class="fw-bold text-primary">{{ jobs|length }}</h3>
+            </div>
+        </div>
+    </div>
+
+    {% if not jobs %}
+    <div class="empty-state shadow-sm">
+        <i class="bi bi-search" style="font-size: 3rem; color: #cbd5e1;"></i>
+        <h3 class="mt-4 fw-bold">Tidak ada lowongan ditemukan</h3>
+        <p class="text-muted">Cobalah untuk menggunakan lokasi "Indonesia" atau kata kunci yang lebih luas di CV Anda.</p>
+        <a href="/" class="btn btn-primary px-4 py-2 mt-3 rounded-pill">Kembali ke Pencarian</a>
+    </div>
+    {% else %}
+    <div class="row g-4">
+        {% for job in jobs %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card job-card shadow-sm p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="score-circle">
+                        {{ job.score|int }}%
+                    </div>
+                    <span class="text-muted small"><i class="bi bi-geo-alt-fill me-1"></i>{{ job.location }}</span>
+                </div>
+
+                <h5 class="fw-bold mb-1 text-dark text-truncate" title="{{ job.title }}">{{ job.title }}</h5>
+                <p class="company-name mb-3">{{ job.company }}</p>
+                
+                <div class="description-box mb-4 flex-grow-1">
+                    <p class="text-muted small mb-0" style="display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ job.desc or 'Klik "Lamar Sekarang" untuk melihat deskripsi lengkap pekerjaan ini.' }}
+                    </p>
+                </div>
+
+                <div class="skill-gap-box mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
+                        <span class="fw-bold small">Analisa Skill Gap:</span>
+                    </div>
+                    {% if job.missing_skills %}
+                        <div class="d-flex flex-wrap">
+                            {% for skill in job.missing_skills %}
+                                <span class="skill-tag">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+                            <i class="bi bi-check-circle-fill me-1"></i> Skill Anda sangat cocok!
+                        </span>
+                    {% endif %}
+                </div>
+
+                <a href="{{ job.link }}" target="_blank" class="btn btn-primary btn-apply w-100">
+                    Lamar Sekarang <i class="bi bi-box-arrow-up-right ms-2"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <footer class="mt-5 mb-5 text-center text-muted small">
+        <p>&copy; 2026 AI JobMatcher. Data diproses secara real-time dari Jora & Careerjet Indonesia.</p>
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

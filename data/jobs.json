@@ -1,0 +1,26 @@
+[
+    {
+        "id": 1,
+        "title": "Python Backend Developer",
+        "skills": "python flask django sql api rest git docker",
+        "description": "Bertanggung jawab membangun API yang efisien dan mengelola database menggunakan Python dan Flask."
+    },
+    {
+        "id": 2,
+        "title": "Frontend Engineer",
+        "skills": "html css javascript react vue bootstrap tailwind",
+        "description": "Fokus pada pengembangan antarmuka pengguna yang responsif dan interaktif menggunakan framework modern."
+    },
+    {
+        "id": 3,
+        "title": "Data Scientist",
+        "skills": "python r sql pandas numpy scikit-learn machine learning",
+        "description": "Mengolah data besar untuk mendapatkan insight bisnis dan membangun model prediksi."
+    },
+    {
+        "id": 4,
+        "title": "Digital Marketer",
+        "skills": "seo sem social media marketing content strategy copywriting",
+        "description": "Mengelola kampanye iklan digital dan meningkatkan brand awareness perusahaan."
+    }
+]

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Loker Indonesia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .main-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .gradient-btn { background: linear-gradient(45deg, #28a745, #218838); border: none; color: white; transition: 0.3s; }
+        .gradient-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-7 text-center">
+                <h1 class="display-5 fw-bold mb-3 text-success">AI Job Matcher</h1>
+                <p class="text-muted mb-5">Upload CV Anda dan temukan lowongan yang paling cocok secara real-time dari berbagai portal kerja Indonesia.</p>
+                
+                <div class="card main-card p-4 p-md-5">
+                    <form action="/upload" method="post" enctype="multipart/form-data">
+                        <div class="mb-4 text-start">
+                            <label class="form-label fw-semibold">Pilih File CV (PDF)</label>
+                            <input type="file" name="cv_file" class="form-control form-control-lg" accept=".pdf" required>
+                        </div>
+                        
+                        <div class="mb-4 text-start">
+                            <label class="form-label fw-semibold">Lokasi Penempatan</label>
+                            <select name="location" class="form-select form-select-lg">
+                                <option value="Indonesia">Seluruh Indonesia</option>
+                                <option value="Jakarta">Jakarta (Jabodetabek)</option>
+                                <option value="Surabaya">Surabaya</option>
+                                <option value="Bandung">Bandung</option>
+                                <option value="Medan">Medan</option>
+                                <option value="Semarang">Semarang</option>
+                                <option value="Makassar">Makassar</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn gradient-btn btn-lg w-100 fw-bold py-3">CARI LOWONGAN COCOK</button>
+                    </form>
+                </div>
+                <div class="mt-4 text-muted small">
+                    <span class="badge bg-secondary">Jora</span> + <span class="badge bg-secondary">Careerjet</span> AI Engine
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
