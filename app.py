@@ -1,7 +1,7 @@
 import os, re, fitz, random, time
 import cloudscraper
+import streamlit as st
 from bs4 import BeautifulSoup
-from flask import Flask, render_template, request, send_file
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
@@ -9,12 +9,10 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# --- KONFIGURASI HALAMAN ---
+st.set_page_config(page_title="JobMatcher Indonesia", layout="wide")
 
-cached_results = {}
-
+# --- DATA MASTER (TIDAK BERUBAH) ---
 MASTER_SKILLS = [
     'python', 'javascript', 'sql', 'php', 'react', 'java', 'excel', 'pemasaran', 
     'accounting', 'photoshop', 'figma', 'canva', 'sales', 'negotiation', 'leadership',
@@ -28,8 +26,8 @@ INDUSTRY_LIST = [
     'data scientist', 'analyst', 'security', 'operator', 'teknisi', 'arsitek'
 ]
 
+# --- FUNGSI INTI (TIDAK BERUBAH) ---
 def get_scraper():
-    # Menggunakan cloudscraper untuk melewati proteksi Cloudflare dasar
     return cloudscraper.create_scraper(
         browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True}
     )
@@ -47,7 +45,6 @@ def scrape_source_jora(keyword, location):
     try:
         scraper = get_scraper()
         url = f"https://id.jora.com/j?q={keyword}&l={location}"
-        # Tambahkan delay acak untuk menghindari deteksi bot
         time.sleep(random.uniform(1, 3)) 
         response = scraper.get(url, timeout=15)
         if response.status_code == 200:
@@ -67,7 +64,7 @@ def scrape_source_jora(keyword, location):
                         "link": full_link
                     })
     except Exception as e:
-        print(f"Jora Scrape Error: {e}")
+        st.error(f"Jora Scrape Error: {e}")
     return jobs
 
 def scrape_source_careerjet(keyword, location):
@@ -91,73 +88,10 @@ def scrape_source_careerjet(keyword, location):
                         "link": full_link
                     })
     except Exception as e:
-        print(f"Careerjet Error: {e}")
+        st.error(f"Careerjet Error: {e}")
     return jobs
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    file = request.files.get('cv_file')
-    loc = request.form.get('location', 'Indonesia')
-    if not file: return "File PDF wajib diunggah!"
-    
-    path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(path)
-    
-    # Extract Text
-    text = ""
-    with fitz.open(path) as doc:
-        for page in doc: text += page.get_text()
-    cv_text = text.lower()
-    
-    # 1. Coba Cari dengan Keyword Spesifik
-    query = extract_smart_keyword(cv_text)
-    results = scrape_source_jora(query, loc) + scrape_source_careerjet(query, loc)
-    
-    # 2. Jika Masih Kosong, Coba Keyword Umum (Fallback)
-    if not results:
-        fallback_query = "lowongan"
-        results = scrape_source_careerjet(fallback_query, loc)
-        query = f"{query} (umum)" # Menandai bahwa ini hasil fallback
-
-    # Proses Scoring & Skill Gap
-    final_list = []
-    user_skills = [s for s in MASTER_SKILLS if s in cv_text]
-    
-    if results:
-        seen = set()
-        unique_jobs = []
-        for j in results:
-            uid = (j['title'] + j['company']).lower()
-            if uid not in seen:
-                seen.add(uid)
-                unique_jobs.append(j)
-
-        if unique_jobs:
-            docs = [cv_text] + [f"{j['title']} {j['desc']}" for j in unique_jobs]
-            tfidf = TfidfVectorizer(stop_words='english').fit_transform(docs)
-            scores = cosine_similarity(tfidf[0:1], tfidf[1:])[0]
-            
-            for i, j in enumerate(unique_jobs):
-                job_full_text = (j['title'] + " " + j['desc']).lower()
-                missing = [s for s in MASTER_SKILLS if s in job_full_text and s not in user_skills]
-                j['score'] = round(min(scores[i] * 500 + 25, 99.8), 1)
-                j['missing_skills'] = missing[:5]
-                final_list.append(j)
-
-    final_list = sorted(final_list, key=lambda x: x['score'], reverse=True)
-    cached_results[request.remote_addr] = {'jobs': final_list, 'query': query, 'loc': loc}
-
-    return render_template('results.html', jobs=final_list, loc=loc, query=query)
-
-@app.route('/download_pdf')
-def download_pdf():
-    data = cached_results.get(request.remote_addr)
-    if not data: return "Sesi berakhir."
-    
+def generate_pdf(data):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     p.setFont("Helvetica-Bold", 14)
@@ -176,7 +110,89 @@ def download_pdf():
         y -= 45
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name="Laporan_Kerja.pdf", mimetype='application/pdf')
+    return buffer
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# --- STREAMLIT UI ---
+def main():
+    st.title("💼 JobMatcher Indonesia")
+    st.markdown("Cari lowongan kerja yang paling cocok dengan CV Anda menggunakan AI.")
+
+    with st.sidebar:
+        st.header("Pengaturan")
+        location = st.text_input("Lokasi Pencarian", "Indonesia")
+        cv_file = st.file_uploader("Unggah CV (PDF)", type=["pdf"])
+        search_button = st.button("Analisa & Cari Lowongan")
+
+    if cv_file and search_button:
+        with st.spinner("Mengekstrak teks dan mencari lowongan..."):
+            # Ekstrak Teks PDF
+            try:
+                with fitz.open(stream=cv_file.read(), filetype="pdf") as doc:
+                    cv_text = "".join([page.get_text() for page in doc]).lower()
+            except Exception as e:
+                st.error(f"Gagal membaca PDF: {e}")
+                return
+
+            # Jalankan Logika Pencarian
+            query = extract_smart_keyword(cv_text)
+            results = scrape_source_jora(query, location) + scrape_source_careerjet(query, location)
+            
+            if not results:
+                fallback_query = "lowongan"
+                results = scrape_source_careerjet(fallback_query, location)
+                query = f"{query} (umum)"
+
+            # Proses Scoring
+            user_skills = [s for s in MASTER_SKILLS if s in cv_text]
+            final_list = []
+            
+            if results:
+                seen = set()
+                unique_jobs = [j for j in results if not ((j['title'] + j['company']).lower() in seen or seen.add((j['title'] + j['company']).lower()))]
+
+                if unique_jobs:
+                    docs = [cv_text] + [f"{j['title']} {j['desc']}" for j in unique_jobs]
+                    tfidf = TfidfVectorizer(stop_words='english').fit_transform(docs)
+                    scores = cosine_similarity(tfidf[0:1], tfidf[1:])[0]
+                    
+                    for i, j in enumerate(unique_jobs):
+                        job_full_text = (j['title'] + " " + j['desc']).lower()
+                        missing = [s for s in MASTER_SKILLS if s in job_full_text and s not in user_skills]
+                        j['score'] = round(min(scores[i] * 500 + 25, 99.8), 1)
+                        j['missing_skills'] = missing[:5]
+                        final_list.append(j)
+
+            final_list = sorted(final_list, key=lambda x: x['score'], reverse=True)
+
+            # --- TAMPILKAN HASIL ---
+            if final_list:
+                st.success(f"Ditemukan {len(final_list)} lowongan untuk kata kunci: **{query}**")
+                
+                # Tombol Download PDF
+                pdf_data = generate_pdf({'jobs': final_list, 'query': query, 'loc': location})
+                st.download_button(
+                    label="📥 Download Laporan PDF",
+                    data=pdf_data,
+                    file_name="Laporan_Kerja.pdf",
+                    mime="application/pdf"
+                )
+
+                # Grid Tampilan Kartu
+                cols = st.columns(3)
+                for idx, job in enumerate(final_list):
+                    with cols[idx % 3]:
+                        with st.container(border=True):
+                            st.subheader(f"{job['score']}% Match")
+                            st.markdown(f"**{job['title']}**")
+                            st.caption(f"{job['company']} | {job['location']}")
+                            
+                            if job['missing_skills']:
+                                st.markdown("**Missing Skills:**")
+                                st.write(", ".join(job['missing_skills']))
+                            
+                            st.link_button("Lamar Sekarang", job['link'])
+            else:
+                st.warning("Tidak ditemukan lowongan yang cocok.")
+
+if __name__ == "__main__":
+    main()
